@@ -11,8 +11,6 @@
 #define LED3 33
 #define LED4 23
 #define LED5 22
-
-
 #define BUTTON_1 32
 #define BUTTON_2 35
 #define BUTTON_3 4
@@ -55,10 +53,10 @@ Servo servo3;
 String message;
 
 // PIN_1 =  3256
-String P1_1 = "3"; // fist_moved       
-String P1_2 = "2"; // L         
-String P1_3 = "5"; // ok    
-String P1_4 = "6"; // palm_moved
+String P1_1 = "1"; // fist_moved       
+String P1_2 = "1"; // L         
+String P1_3 = "1"; // ok    
+String P1_4 = "1"; // palm_moved
 
 // PIN_2 = 4531
 String P2_1 = "4"; // index  
@@ -67,11 +65,12 @@ String P2_3 = "3"; // fist_moved
 String P2_4 = "1"; // palm
 
 // PIN_3 = 4531
-String P3_1 = "4"; // index  
-String P3_2 = "5"; // ok           
-String P3_3 = "3"; // fist_moved
+String P3_1 = "1"; // index  
+String P3_2 = "1"; // ok           
+String P3_3 = "1"; // fist_moved
 String P3_4 = "1"; // palm
 
+/* Setup Function */
 void setup() {
   pinMode(LED0, OUTPUT);
   pinMode(LED1, OUTPUT);
@@ -109,6 +108,7 @@ void setup() {
   client.setCallback(callback);
 }
 
+/* Void Function */
 void loop() {
   // Conexion MQTT
   connectMQTT();  
@@ -117,7 +117,7 @@ void loop() {
   }
   client.loop();
 
-  // Control de botones
+  // Control de proceso apertura lockers con botones
   if (digitalRead(BUTTON_1) == HIGH && !button1Pressed) {
     button1Pressed = true; 
     locker_1 = !locker_1;  
@@ -139,6 +139,7 @@ void loop() {
     delay(300); 
   }
 
+  // Manejo de cierre lockers y finalizacion de un proceso de apertura con botones
   if (digitalRead(BUTTON_1) == LOW && button1Pressed) {
     button1Pressed = false;  
     servo1_closer();
@@ -157,7 +158,7 @@ void loop() {
     currentGestureLocker3 = 0;
   }
 
-  // Control del locker 1 y 2 para leer gestos y accionar el servo
+  // Control del lockers para leer gestos y accionar el servo
   if (locker_1) {
     delay(2000); 
     isServo = 1;
@@ -186,6 +187,10 @@ void loop() {
   }
 }
 
+/* Funciones Locker */
+
+
+// Controlador de apertura de lockers
 void locker_controller(String receivedData, String P1, String P2, String P3, String P4, int &currentGesture, int isServo) {
   
   int parser_1 = receivedData.indexOf(';');
@@ -198,8 +203,8 @@ void locker_controller(String receivedData, String P1, String P2, String P3, Str
     if (parser_2 >= 0) {
       detected_gesture_2 = detected_gesture_2.substring(0, parser_2);
     }
-
-    Serial.println("Detected 1: " + detected_gesture_1 + ", Detected 2: " + detected_gesture_2);
+  
+    Serial.println("Locker: " + String(isServo) + " | Detected 1: " + detected_gesture_1 + ", Detected 2: " + detected_gesture_2);
 
     switch (currentGesture) {
       case 0: 
@@ -253,6 +258,7 @@ void locker_controller(String receivedData, String P1, String P2, String P3, Str
   }
 }
 
+// Servo opener and closer (servo1, servo2, servo3)
 void servo1_opener() {
   if (!servo1opened) {     
     servo.write(openPostion);     
@@ -276,7 +282,18 @@ void servo1_opener() {
 void servo1_closer() {
   if (servo1opened) {     
     servo.write(closedPosition);     
-    delay(1500);          
+    delay(1500);
+    // publicar en close_locker_g6 el id del casillero
+    if (client.connected()) {
+      // Publicar el mensaje al tópico
+      client.publish("close_locker_g6", "{ \"id\": \"1\" }"); 
+      Serial.println("Mensaje enviado al topic: close_locker_g6");
+    } else {
+      Serial.println("Fallo al publicar, intentando reconectar...");
+      connectMQTT();
+      client.publish("close_locker_g6", "{ \"id\": \"1\" }");
+      Serial.println("Mensaje enviado al topic: close_locker_g6");
+    }          
     servo1opened = false;   
   }
 }
@@ -304,7 +321,18 @@ void servo2_opener() {
 void servo2_closer() {
   if (servo2opened) {     
     servo2.write(closedPosition);     
-    delay(1500);          
+    delay(1500);
+    // publicar en close_locker_g6 el id del casillero
+    if (client.connected()) {
+      // Publicar el mensaje al tópico
+      client.publish("close_locker_g6", "{ \"id\": \"2\" }"); 
+      Serial.println("Mensaje enviado al topic: close_locker_g6");
+    } else {
+      Serial.println("Fallo al publicar, intentando reconectar...");
+      connectMQTT();
+      client.publish("close_locker_g6", "{ \"id\": \"2\" }");
+      Serial.println("Mensaje enviado al topic: close_locker_g6");
+    }          
     servo2opened = false;   
   }
 }
@@ -332,11 +360,24 @@ void servo3_opener() {
 void servo3_closer() {
   if (servo3opened) {     
     servo3.write(closedPosition);     
-    delay(1500);          
+    delay(1500); 
+    // publicar en close_locker_g6 el id del casillero
+    if (client.connected()) {
+      // Publicar el mensaje al tópico
+      client.publish("close_locker_g6", "{ \"id\": \"3\" }"); 
+      Serial.println("Mensaje enviado al topic: close_locker_g6");
+    } else {
+      Serial.println("Fallo al publicar, intentando reconectar...");
+      connectMQTT();
+      client.publish("close_locker_g6", "{ \"id\": \"3\" }");
+      Serial.println("Mensaje enviado al topic: close_locker_g6");
+    }
     servo3opened = false;   
   }
 }
 
+
+// Callback MQTT: Procesa el mensaje enviado desde la web app
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Mensaje recibido en el tema: ");
   Serial.println(topic);
@@ -360,11 +401,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  // setear id y pin password
+  // Setear id y pin password
   id = doc["id"].as<String>();
   String pin = doc["password"].as<String>();
 
-  // set password Locker 1
+  // Set password Locker 1
   if (id == "1") {
     if (pin.length() == 4) {
       P1_1 = String(pin[0]); 
@@ -375,7 +416,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Error: El PIN no tiene 4 dígitos");
       return;
     }
-    // set password Locker 2
+    // Set password Locker 2
   } else if (id == "2") {
     if (pin.length() == 4) {
       P2_1 = String(pin[0]); 
@@ -386,6 +427,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Error: El PIN no tiene 4 dígitos");
       return;
     }
+    // Set password Locker 3
   } else if (id == "3") {
     if (pin.length() == 4) {
       P3_1 = String(pin[0]); 
@@ -401,6 +443,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Locker ID: ");
   Serial.println(id);
 
+  // Blink los LEDs correspondientes al PIN nuevo para el Locker seteado
   if (id == "1") {
     blinkLED(LED0);
     Serial.println("P1_1: " + P1_1);
@@ -446,6 +489,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
+// Conexion MQTT
 void connectMQTT() {
   while (!client.connected()) {
     Serial.println("Conectando al broker MQTT...");
@@ -461,6 +505,7 @@ void connectMQTT() {
   }
 }
 
+// Cada gesto representado con los LEDs 
 void gestureLED(int gesture) {
   if (gesture == 0) {
     digitalWrite(LED0, LOW);
