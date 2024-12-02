@@ -103,7 +103,6 @@ void setup() {
   client.setServer(mqttServer, mqttPort);
   client.setKeepAlive(60);
 
-
   connectMQTT();
   client.setCallback(callback);
 }
@@ -188,7 +187,6 @@ void loop() {
 }
 
 /* Funciones Locker */
-
 
 // Controlador de apertura de lockers
 void locker_controller(String receivedData, String P1, String P2, String P3, String P4, int &currentGesture, int isServo) {
@@ -391,101 +389,118 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Mensaje JSON recibido: ");
   Serial.println(message);
 
-  // Procesar el JSON
-  StaticJsonDocument<200> doc;
-  DeserializationError error = deserializeJson(doc, message);
+  if (strcmp(topic, "check_status_g6") == 0) {
+    handleCheckStatus(message);
+  } else {
+    // Procesar el JSON
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, message);
 
-  if (error) {
-    Serial.print("Error al analizar el JSON: ");
-    Serial.println(error.c_str());
-    return;
+    if (error) {
+      Serial.print("Error al analizar el JSON: ");
+      Serial.println(error.c_str());
+      return;
+    }
+
+    // Setear id y pin password
+    id = doc["id"].as<String>();
+    String pin = doc["password"].as<String>();
+
+    // Set password Locker 1
+    if (id == "1") {
+      if (pin.length() == 4) {
+        P1_1 = String(pin[0]); 
+        P1_2 = String(pin[1]); 
+        P1_3 = String(pin[2]); 
+        P1_4 = String(pin[3]); 
+      } else {
+        Serial.println("Error: El PIN no tiene 4 dígitos");
+        return;
+      }
+      // Set password Locker 2
+    } else if (id == "2") {
+      if (pin.length() == 4) {
+        P2_1 = String(pin[0]); 
+        P2_2 = String(pin[1]); 
+        P2_3 = String(pin[2]); 
+        P2_4 = String(pin[3]); 
+      } else {
+        Serial.println("Error: El PIN no tiene 4 dígitos");
+        return;
+      }
+      // Set password Locker 3
+    } else if (id == "3") {
+      if (pin.length() == 4) {
+        P3_1 = String(pin[0]); 
+        P3_2 = String(pin[1]); 
+        P3_3 = String(pin[2]); 
+        P3_4 = String(pin[3]); 
+      } else {
+        Serial.println("Error: El PIN no tiene 4 dígitos");
+        return;
+      }
+    }
+
+    Serial.print("Locker ID: ");
+    Serial.println(id);
+
+    // Blink los LEDs correspondientes al PIN nuevo para el Locker seteado
+    if (id == "1") {
+      blinkLED(LED0);
+      Serial.println("P1_1: " + P1_1);
+      gestureLED(P1_1.toInt());
+      delay(500);
+      Serial.println("P1_2: " + P1_2);
+      gestureLED(P1_2.toInt());
+      delay(500);
+      Serial.println("P1_3: " + P1_3);
+      gestureLED(P1_3.toInt());
+      delay(500);
+      Serial.println("P1_4: " + P1_4);
+      gestureLED(P1_4.toInt());
+      delay(500);
+    } else if (id == "2"){
+      blinkLED(LED1);
+      Serial.println("P2_1: " + P2_1);
+      gestureLED(P2_1.toInt());
+      delay(500);
+      Serial.println("P2_2: " + P2_2);
+      gestureLED(P2_2.toInt());
+      delay(500);
+      Serial.println("P2_3: " + P2_3);
+      gestureLED(P2_3.toInt());
+      delay(500);
+      Serial.println("P2_4: " + P2_4);
+      gestureLED(P2_4.toInt());
+      delay(500);
+    } else if (id == "3"){
+      blinkLED(LED2);
+      Serial.println("P3_1: " + P3_1);
+      gestureLED(P3_1.toInt());
+      delay(500);
+      Serial.println("P3_2: " + P3_2);
+      gestureLED(P3_2.toInt());
+      delay(500);
+      Serial.println("P3_3: " + P3_3);
+      gestureLED(P3_3.toInt());
+      delay(500);
+      Serial.println("P3_4: " + P3_4);
+      gestureLED(P3_4.toInt());
+      delay(500);
+    }
   }
+}
 
-  // Setear id y pin password
-  id = doc["id"].as<String>();
-  String pin = doc["password"].as<String>();
-
-  // Set password Locker 1
-  if (id == "1") {
-    if (pin.length() == 4) {
-      P1_1 = String(pin[0]); 
-      P1_2 = String(pin[1]); 
-      P1_3 = String(pin[2]); 
-      P1_4 = String(pin[3]); 
-    } else {
-      Serial.println("Error: El PIN no tiene 4 dígitos");
-      return;
-    }
-    // Set password Locker 2
-  } else if (id == "2") {
-    if (pin.length() == 4) {
-      P2_1 = String(pin[0]); 
-      P2_2 = String(pin[1]); 
-      P2_3 = String(pin[2]); 
-      P2_4 = String(pin[3]); 
-    } else {
-      Serial.println("Error: El PIN no tiene 4 dígitos");
-      return;
-    }
-    // Set password Locker 3
-  } else if (id == "3") {
-    if (pin.length() == 4) {
-      P3_1 = String(pin[0]); 
-      P3_2 = String(pin[1]); 
-      P3_3 = String(pin[2]); 
-      P3_4 = String(pin[3]); 
-    } else {
-      Serial.println("Error: El PIN no tiene 4 dígitos");
-      return;
-    }
-  }
-
-  Serial.print("Locker ID: ");
-  Serial.println(id);
-
-  // Blink los LEDs correspondientes al PIN nuevo para el Locker seteado
-  if (id == "1") {
-    blinkLED(LED0);
-    Serial.println("P1_1: " + P1_1);
-    gestureLED(P1_1.toInt());
-    delay(500);
-    Serial.println("P1_2: " + P1_2);
-    gestureLED(P1_2.toInt());
-    delay(500);
-    Serial.println("P1_3: " + P1_3);
-    gestureLED(P1_3.toInt());
-    delay(500);
-    Serial.println("P1_4: " + P1_4);
-    gestureLED(P1_4.toInt());
-    delay(500);
-  } else if (id == "2"){
-    blinkLED(LED1);
-    Serial.println("P2_1: " + P2_1);
-    gestureLED(P2_1.toInt());
-    delay(500);
-    Serial.println("P2_2: " + P2_2);
-    gestureLED(P2_2.toInt());
-    delay(500);
-    Serial.println("P2_3: " + P2_3);
-    gestureLED(P2_3.toInt());
-    delay(500);
-    Serial.println("P2_4: " + P2_4);
-    gestureLED(P2_4.toInt());
-    delay(500);
-  } else if (id == "3"){
-    blinkLED(LED2);
-    Serial.println("P3_1: " + P3_1);
-    gestureLED(P3_1.toInt());
-    delay(500);
-    Serial.println("P3_2: " + P3_2);
-    gestureLED(P3_2.toInt());
-    delay(500);
-    Serial.println("P3_3: " + P3_3);
-    gestureLED(P3_3.toInt());
-    delay(500);
-    Serial.println("P3_4: " + P3_4);
-    gestureLED(P3_4.toInt());
-    delay(500);
+void handleCheckStatus(String message) {
+  if (client.connected()) {
+    // Publicar el mensaje al tópico
+    client.publish("status_response_g6", "{ \"id\": \"1\", \"status\": \"connected\" }"); 
+    Serial.println("Mensaje enviado al topic: status_response_g6");
+  } else {
+    Serial.println("Fallo al publicar, intentando reconectar...");
+    connectMQTT();
+    client.publish("status_response_g6", "{ \"id\": \"1\", \"status\": \"connected\" }");
+    Serial.println("Mensaje enviado al topic: status_response_g6");
   }
 }
 
@@ -496,6 +511,7 @@ void connectMQTT() {
     if (client.connect("ArduinoClient")) {
       Serial.println("Conectado al broker MQTT");
       client.subscribe("set_locker_g6"); 
+      client.subscribe("check_status_g6"); 
       
     } else {
       Serial.print("Error de conexión, estado: ");
